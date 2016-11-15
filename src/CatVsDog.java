@@ -17,14 +17,14 @@ public class CatVsDog {
 		for (int i = 0; i < numCases; i++) {
 			
 			// parse case info
-			int c = sc.nextInt();
-			int d = sc.nextInt();
-			int v = sc.nextInt();
+			sc.nextInt();
+			sc.nextInt();
+			int numberOfPreferences = sc.nextInt();
 			sc.nextLine();
 			
 			// parse preferences
 			List<String[]> voterPreferences = new ArrayList<String[]>();
-			for (int j = 0; j < v; j++) {
+			for (int j = 0; j < numberOfPreferences; j++) {
 				String keep = sc.next();
 				String remove = sc.next();
 				voterPreferences.add(new String[] {keep, remove});	
@@ -35,15 +35,28 @@ public class CatVsDog {
 			CatVsDog cvd = new CatVsDog();
 			List<VoterPreference> vps = cvd.convertPreferences(voterPreferences);
 			Graph g = cvd.new Graph(vps);
-			cvd.buildGraph(g, vps);
-			int maxFlow = cvd.ekMaxFlow(g);
-			System.out.println(v - maxFlow);
+			cvd.initializeGraphCapacity(g, vps);
+			int minNumberUnsatisfiedPreferences = cvd.ekMaxFlow(g);
+			int numSatisfiedPreferences = numberOfPreferences - minNumberUnsatisfiedPreferences;
+			System.out.println(numSatisfiedPreferences);
 		}
 		
 		sc.close();
 	}
 	
-	void buildGraph(Graph g, List<VoterPreference> vps) {
+	List<VoterPreference> convertPreferences(List<String[]> preferences) {
+		// parse raw preferences into VoterPreference objects
+		List<VoterPreference> vps = new ArrayList<VoterPreference>();
+		for (String[] preference : preferences) {
+			boolean isCatLover = preference[0].charAt(0) == 'C';
+			int keepNumber = Integer.parseInt(preference[0].substring(1));
+			int removeNumber = Integer.parseInt(preference[1].substring(1));
+			vps.add(new VoterPreference(isCatLover, keepNumber, removeNumber));
+		}
+		return vps;
+	}
+	
+	void initializeGraphCapacity(Graph g, List<VoterPreference> vps) {
 		// sort preferences into cat and dog lovers
 		List<VoterPreference> dlps = new ArrayList<VoterPreference>();
 		List<VoterPreference> clps = new ArrayList<VoterPreference>();
@@ -75,19 +88,8 @@ public class CatVsDog {
 		}	
 	}
 	
-	List<VoterPreference> convertPreferences(List<String[]> preferences) {
-		// parse raw preferences into VoterPreference objects
-		List<VoterPreference> vps = new ArrayList<VoterPreference>();
-		for (String[] preference : preferences) {
-			boolean isCatLover = preference[0].charAt(0) == 'C';
-			int keepNumber = Integer.parseInt(preference[0].substring(1));
-			int removeNumber = Integer.parseInt(preference[1].substring(1));
-			vps.add(new VoterPreference(isCatLover, keepNumber, removeNumber));
-		}
-		return vps;
-	}
-	
 	List<Integer> getBFSPath(Graph g) {
+		// book's pseudocode adapted to Java
 		int size = g.getSize();
 		char[] color = new char[size];
 		int[] d = new int[size];
@@ -116,12 +118,14 @@ public class CatVsDog {
 			}
 			color[u] = 'B';
 		}
+		
+		// use pi array to find vertex indices in path from sink to source
 		List<Integer> path = new LinkedList<Integer>();
 		int v = g.getSinkIndex();
 		while(pi[v] != -1) {
 			path.add(0, v);
 			v = pi[v];
-		}
+		}	
 		if (v == g.getSourceIndex()) {
 			path.add(0, v);
 		}
@@ -129,6 +133,7 @@ public class CatVsDog {
 	}
 	
 	Integer ekMaxFlow(Graph g) {
+		// book's pseudocode adapted to Java
 		int f = 0;
 		List<Integer> path = getBFSPath(g);
 		while (!path.isEmpty()) {
@@ -158,18 +163,22 @@ public class CatVsDog {
 	}
 	
 	class Graph {
-		int[][] f;
-		int[][] c;
-		int size;
-		HashMap<VoterPreference, Integer> indexMap = new HashMap<VoterPreference, Integer>();
+		// graph information
+		int numberOfVerticies;
+		int[][] flowMatrix;
+		int[][] capacityMatrix;
+		
+		// convenient index information
 		int sourceIndex;
 		int sinkIndex;
+		HashMap<VoterPreference, Integer> indexMap = new HashMap<VoterPreference, Integer>();
 
 		public Graph(List<VoterPreference> vps) {
-			size = vps.size() + 2;
-			f = new int[size][size];
-			c = new int[size][size];
+			numberOfVerticies = vps.size() + 2;
+			flowMatrix = new int[numberOfVerticies][numberOfVerticies];
+			capacityMatrix = new int[numberOfVerticies][numberOfVerticies];
 			
+			// build index map
 			int i;
 			for (i = 0; i < vps.size(); i++) {
 				indexMap.put(vps.get(i), i);
@@ -179,10 +188,11 @@ public class CatVsDog {
 		}
 		
 		public int getSize() {
-			return size;
+			return numberOfVerticies;
 		}
 		
 		public List<Integer> getAdjacentNodes(int v) {
+			// node is adjacent if it has residual capacity
 			List<Integer> l = new ArrayList<Integer>();
 			for (int i = 0; i < getSize(); i++) {
 				int rCap = getResidualCapacity(v, i);
@@ -210,24 +220,23 @@ public class CatVsDog {
 		}
 		
 		public void setCapacity(int v1, int v2, int value) {
-			c[v1][v2] = value;
+			capacityMatrix[v1][v2] = value;
 		}
 		
 		public int getCapacity(int v1, int v2) {
-			return c[v1][v2];
+			return capacityMatrix[v1][v2];
 		}
 		
 		public void setFlow(int v1, int v2, int value) {
-			f[v1][v2] = value;
+			flowMatrix[v1][v2] = value;
 		}
 		
 		public int getFlow(int v1, int v2) {
-			return f[v1][v2];
+			return flowMatrix[v1][v2];
 		}
 	}
 	
 	class VoterPreference {
-		
 		boolean isCatLover;
 		int keepNumber;
 		int removeNumber;
