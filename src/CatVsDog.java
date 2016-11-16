@@ -51,27 +51,27 @@ public class CatVsDog {
 			
 			FlowNetwork fn = cvd.new FlowNetwork(vps);
 			cvd.initializeGraphCapacity(fn, clps, dlps);
-			int minNumberUnsatisfiedPreferences = cvd.ekMaxFlow(fn);
-			int numSatisfiedPreferences = numberOfPreferences - minNumberUnsatisfiedPreferences;
-			System.out.println(numSatisfiedPreferences);
+			
+			int maxFlow = cvd.ekMaxFlow(fn);
+			
+			System.out.println(numberOfPreferences - maxFlow);
 			cvd.printTraceToStdErr(fn, clps, dlps);
 		}
-		
 		sc.close();
 	}
 	
 	void printTraceToStdErr(FlowNetwork fn, List<VoterPreference> clps, List<VoterPreference> dlps) {
 		List<VoterPreference> satisfiedPreferences = new ArrayList<VoterPreference>();
-		Integer[] d = BFS(fn).get("d");
+		Integer[] distances = BFS(fn).get("d");
 
 		for (VoterPreference clp : clps) {
-			if (d[fn.getIndex(clp)] < Integer.MAX_VALUE) {
+			if (distances[fn.getIndex(clp)] != Integer.MAX_VALUE) {
 				satisfiedPreferences.add(clp);
 			}
 		}
 		
 		for (VoterPreference dlp : dlps) {
-			if (d[fn.getIndex(dlp)] == Integer.MAX_VALUE) {
+			if (distances[fn.getIndex(dlp)] == Integer.MAX_VALUE) {
 				satisfiedPreferences.add(dlp);
 			}
 		}
