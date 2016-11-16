@@ -34,9 +34,9 @@ public class CatVsDog {
 			// analyze preferences
 			CatVsDog cvd = new CatVsDog();
 			List<VoterPreference> vps = cvd.convertPreferences(voterPreferences);
-			FlowNetwork g = cvd.new FlowNetwork(vps);
-			cvd.initializeGraphCapacity(g, vps);
-			int minNumberUnsatisfiedPreferences = cvd.ekMaxFlow(g);
+			FlowNetwork fn = cvd.new FlowNetwork(vps);
+			cvd.initializeGraphCapacity(fn, vps);
+			int minNumberUnsatisfiedPreferences = cvd.ekMaxFlow(fn);
 			int numSatisfiedPreferences = numberOfPreferences - minNumberUnsatisfiedPreferences;
 			System.out.println(numSatisfiedPreferences);
 		}
@@ -56,7 +56,7 @@ public class CatVsDog {
 		return vps;
 	}
 	
-	void initializeGraphCapacity(FlowNetwork g, List<VoterPreference> vps) {
+	void initializeGraphCapacity(FlowNetwork fn, List<VoterPreference> vps) {
 		// sort preferences into cat and dog lovers
 		List<VoterPreference> dlps = new ArrayList<VoterPreference>();
 		List<VoterPreference> clps = new ArrayList<VoterPreference>();
@@ -72,31 +72,31 @@ public class CatVsDog {
 		for (VoterPreference clp : clps) {
 			for (VoterPreference dlp : dlps) {
 				if (clp.keepNumber == dlp.removeNumber || clp.removeNumber == dlp.keepNumber) {
-					g.setCapacity(g.getIndex(clp), g.getIndex(dlp), 1);
+					fn.setCapacity(fn.getIndex(clp), fn.getIndex(dlp), 1);
 				}
 			}
 		}
 		
 		// connect source to cat lovers
 		for (VoterPreference clp : clps) {
-			g.setCapacity(g.getSourceIndex(), g.getIndex(clp), 1);
+			fn.setCapacity(fn.getSourceIndex(), fn.getIndex(clp), 1);
 		}
 		
 		// connect dog lovers to sink
 		for (VoterPreference dlp : dlps) {
-			g.setCapacity(g.getIndex(dlp), g.getSinkIndex(), 1);
+			fn.setCapacity(fn.getIndex(dlp), fn.getSinkIndex(), 1);
 		}	
 	}
 	
-	List<Integer> getBFSPath(FlowNetwork g) {
+	List<Integer> getBFSPath(FlowNetwork fn) {
 		// book's pseudocode adapted to Java
-		int size = g.getSize();
+		int size = fn.getSize();
 		char[] color = new char[size];
 		int[] d = new int[size];
 		int[] pi = new int[size];
 		Queue<Integer> q = new LinkedList<Integer>();	
 		for (int i = 0; i < size; i++) {
-			if (i == g.getSourceIndex()) {
+			if (i == fn.getSourceIndex()) {
 				color[i] = 'G';
 				d[i] = 0;
 			} else {
@@ -105,10 +105,10 @@ public class CatVsDog {
 			}
 			pi[i] = -1;
 		}
-		q.add(g.getSourceIndex());
+		q.add(fn.getSourceIndex());
 		while (q.peek() != null) {
 			int u = q.remove();
-			for (int v : g.getAdjacentVerticiesWithResidualCapacity(u)) {
+			for (int v : fn.getAdjacentVerticiesWithResidualCapacity(u)) {
 				if (color[v] == 'W') {
 					color[v] = 'G';
 					d[v] = d[u] + 1;
@@ -116,26 +116,25 @@ public class CatVsDog {
 					q.add(v);
 				}
 			}
-			color[u] = 'B';
 		}
 		
 		// use pi array to find vertex indices in path from sink to source
 		List<Integer> path = new LinkedList<Integer>();
-		int v = g.getSinkIndex();
+		int v = fn.getSinkIndex();
 		while(pi[v] != -1) {
 			path.add(0, v);
 			v = pi[v];
 		}	
-		if (v == g.getSourceIndex()) {
+		if (v == fn.getSourceIndex()) {
 			path.add(0, v);
 		}
 		return path;
 	}
 	
-	Integer ekMaxFlow(FlowNetwork g) {
+	Integer ekMaxFlow(FlowNetwork fn) {
 		// book's pseudocode adapted to Java
 		int f = 0;
-		List<Integer> path = getBFSPath(g);
+		List<Integer> path = getBFSPath(fn);
 		while (!path.isEmpty()) {
 			
 			// special case for problem
@@ -147,15 +146,17 @@ public class CatVsDog {
 			}
 			
 			for (Integer[] edge : edges) {
-				if (g.getCapacity(edge[0], edge[1]) != 0) {
-					int currFlow = g.getFlow(edge[0], edge[1]);
-					g.setFlow(edge[0], edge[1], currFlow + flowAmount);
+				int v1 = edge[0];
+				int v2 = edge[1];
+				if (fn.getCapacity(v1, v2) != 0) {
+					int currFlow = fn.getFlow(v1, v2);
+					fn.setFlow(v1, v2, currFlow + flowAmount);
 				} else {
-					int currFlow = g.getFlow(edge[1], edge[0]);
-					g.setFlow(edge[1], edge[0], currFlow - flowAmount);
+					int currFlow = fn.getFlow(v2, v1);
+					fn.setFlow(v2, v1, currFlow - flowAmount);
 				}
 			}
-			path = getBFSPath(g);
+			path = getBFSPath(fn);
 			f += flowAmount;
 		}
 		return f;
@@ -230,6 +231,8 @@ public class CatVsDog {
 		public void setFlow(int v1, int v2, int value) {
 			flowMatrix[v1][v2] = value;
 			
+			// modify residualCapacityAdjList to take new flow information into account
+			// modify edge v1 -> v2
 			List<Integer> adjList = residualCapacityAdjList.get(v1);
 			if (getResidualCapacity(v1, v2) > 0) {
 				if (!adjList.contains(v2)) {
@@ -238,7 +241,7 @@ public class CatVsDog {
 			} else {
 				adjList.remove(Integer.valueOf(v2));
 			}
-			
+			// modify edge v2 -> v1
 			adjList = residualCapacityAdjList.get(v2);
 			if (getResidualCapacity(v2, v1) > 0) {
 				if (!adjList.contains(v1)) {
