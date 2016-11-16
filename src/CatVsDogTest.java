@@ -27,9 +27,12 @@ public class CatVsDogTest {
 		String inFileName = prefix + ".in";
 		String ansFileName = prefix + ".ans";
 		String myAnsFileName = prefix + ".myans";
-		
-		PrintStream stdout = System.out;
+		String errFileName = prefix + ".err";
+		String myErrFileName = prefix + ".myerr";
+
 		InputStream stdin = System.in;
+		PrintStream stdout = System.out;
+		PrintStream stderr = System.err;
 		
 		InputStream inIStream = null;
 		try {
@@ -46,11 +49,23 @@ public class CatVsDogTest {
 			e.printStackTrace();
 		}
 		
+		PrintStream myErrOStream = null;
+		try {
+			myErrOStream = new PrintStream(myErrFileName);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		System.setIn(inIStream);
 		System.setOut(myAnsOStream);
+		System.setErr(myErrOStream);
+		
 		CatVsDog.main(null);
+		
 		System.setIn(stdin);
 		System.setOut(stdout);
+		System.setErr(stderr);
 		
 		try {
 			inIStream.close();
@@ -74,10 +89,26 @@ public class CatVsDogTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		String myErr = null;
+		try {
+			myErr = new String(Files.readAllBytes(Paths.get(myErrFileName)));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String err = null;
+		try {
+			err = new String(Files.readAllBytes(Paths.get(errFileName)));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		System.out.println("------" + prefix + " TEST------");
 		System.out.println(ans);
+		System.out.println(err);
 		System.out.println(myAns);
+		System.out.println(myErr);
 		
 		assertTrue(myAns.equals(ans));
 	}

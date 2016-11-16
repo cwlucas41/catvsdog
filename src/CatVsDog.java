@@ -1,9 +1,12 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Scanner;
+import java.util.Set;
 
 public class CatVsDog {
 	
@@ -34,14 +37,58 @@ public class CatVsDog {
 			// analyze preferences
 			CatVsDog cvd = new CatVsDog();
 			List<VoterPreference> vps = cvd.convertPreferences(voterPreferences);
+			
+			// sort preferences into cat and dog lovers
+			List<VoterPreference> dlps = new ArrayList<VoterPreference>();
+			List<VoterPreference> clps = new ArrayList<VoterPreference>();
+			for (VoterPreference vp : vps) {
+				if (vp.isCatLover) {
+					clps.add(vp);
+				} else {
+					dlps.add(vp);
+				}
+			}
+			
 			FlowNetwork fn = cvd.new FlowNetwork(vps);
-			cvd.initializeGraphCapacity(fn, vps);
+			cvd.initializeGraphCapacity(fn, clps, dlps);
 			int minNumberUnsatisfiedPreferences = cvd.ekMaxFlow(fn);
 			int numSatisfiedPreferences = numberOfPreferences - minNumberUnsatisfiedPreferences;
 			System.out.println(numSatisfiedPreferences);
+			cvd.printTraceToStdErr(fn, clps, dlps);
 		}
 		
 		sc.close();
+	}
+	
+	void printTraceToStdErr(FlowNetwork fn, List<VoterPreference> clps, List<VoterPreference> dlps) {
+		List<VoterPreference> satisfiedPreferences = new ArrayList<VoterPreference>();
+		Integer[] d = BFS(fn).get("d");
+
+		for (VoterPreference clp : clps) {
+			if (d[fn.getIndex(clp)] < Integer.MAX_VALUE) {
+				satisfiedPreferences.add(clp);
+			}
+		}
+		
+		for (VoterPreference dlp : dlps) {
+			if (d[fn.getIndex(dlp)] == Integer.MAX_VALUE) {
+				satisfiedPreferences.add(dlp);
+			}
+		}
+		
+		Set<String> keepMessages = new HashSet<String>();
+		List<String> satisfiedMessages = new ArrayList<String>();
+		for (VoterPreference satisfiedPreference : satisfiedPreferences) {
+			keepMessages.add("Keeping " + satisfiedPreference.keepId);
+			satisfiedMessages.add("Happy person: +" + satisfiedPreference.keepId + ",-" + satisfiedPreference.removeId);
+		}
+		for (String keepMessage : keepMessages) {
+			System.err.println(keepMessage);
+		}
+		for (String satisfiedMessage : satisfiedMessages) {
+			System.err.println(satisfiedMessage);
+		}
+		System.err.println();
 	}
 	
 	List<VoterPreference> convertPreferences(List<String[]> preferences) {
@@ -51,23 +98,12 @@ public class CatVsDog {
 			boolean isCatLover = preference[0].charAt(0) == 'C';
 			int keepNumber = Integer.parseInt(preference[0].substring(1));
 			int removeNumber = Integer.parseInt(preference[1].substring(1));
-			vps.add(new VoterPreference(isCatLover, keepNumber, removeNumber));
+			vps.add(new VoterPreference(isCatLover, keepNumber, preference[0], removeNumber, preference[1]));
 		}
 		return vps;
 	}
 	
-	void initializeGraphCapacity(FlowNetwork fn, List<VoterPreference> vps) {
-		// sort preferences into cat and dog lovers
-		List<VoterPreference> dlps = new ArrayList<VoterPreference>();
-		List<VoterPreference> clps = new ArrayList<VoterPreference>();
-		for (VoterPreference vp : vps) {
-			if (vp.isCatLover) {
-				clps.add(vp);
-			} else {
-				dlps.add(vp);
-			}
-		}
-		
+	void initializeGraphCapacity(FlowNetwork fn, List<VoterPreference> clps, List<VoterPreference> dlps) {
 		// connect incompatible cat and dog lovers
 		for (VoterPreference clp : clps) {
 			for (VoterPreference dlp : dlps) {
@@ -88,12 +124,12 @@ public class CatVsDog {
 		}	
 	}
 	
-	List<Integer> getBFSPath(FlowNetwork fn) {
+	Map<String, Integer[]> BFS(FlowNetwork fn) {
 		// book's pseudocode adapted to Java
 		int size = fn.getSize();
 		char[] color = new char[size];
-		int[] d = new int[size];
-		int[] pi = new int[size];
+		Integer[] d = new Integer[size];
+		Integer[] pi = new Integer[size];
 		Queue<Integer> q = new LinkedList<Integer>();	
 		for (int i = 0; i < size; i++) {
 			if (i == fn.getSourceIndex()) {
@@ -103,7 +139,7 @@ public class CatVsDog {
 				color[i] = 'W';
 				d[i] = Integer.MAX_VALUE;
 			}
-			pi[i] = -1;
+			pi[i] = null;
 		}
 		q.add(fn.getSourceIndex());
 		while (q.peek() != null) {
@@ -118,10 +154,20 @@ public class CatVsDog {
 			}
 		}
 		
+		Map<String, Integer[]> answer = new HashMap<String, Integer[]>();
+		answer.put("d", d);
+		answer.put("pi", pi);
+		return answer;
+	}
+	
+	List<Integer> getBFSPathFromSourceToSink(FlowNetwork fn) {
+
+		Integer[] pi = BFS(fn).get("pi");
+		
 		// use pi array to find vertex indices in path from sink to source
 		List<Integer> path = new LinkedList<Integer>();
 		int v = fn.getSinkIndex();
-		while(pi[v] != -1) {
+		while(pi[v] != null) {
 			path.add(0, v);
 			v = pi[v];
 		}	
@@ -133,8 +179,8 @@ public class CatVsDog {
 	
 	Integer ekMaxFlow(FlowNetwork fn) {
 		// book's pseudocode adapted to Java
-		int f = 0;
-		List<Integer> path = getBFSPath(fn);
+		int totalFlow = 0;
+		List<Integer> path = getBFSPathFromSourceToSink(fn);
 		while (!path.isEmpty()) {
 			
 			// special case for problem
@@ -156,10 +202,10 @@ public class CatVsDog {
 					fn.setFlow(v2, v1, currFlow - flowAmount);
 				}
 			}
-			path = getBFSPath(fn);
-			f += flowAmount;
+			path = getBFSPathFromSourceToSink(fn);
+			totalFlow += flowAmount;
 		}
-		return f;
+		return totalFlow;
 	}
 	
 	class FlowNetwork {
@@ -260,12 +306,16 @@ public class CatVsDog {
 	class VoterPreference {
 		boolean isCatLover;
 		int keepNumber;
+		String keepId;
 		int removeNumber;
+		String removeId;
 	
-		public VoterPreference(boolean isCatLover, int keepNumber, int removeNumber) {
+		public VoterPreference(boolean isCatLover, int keepNumber, String keepId, int removeNumber, String removeId) {
 			this.isCatLover = isCatLover;
 			this.keepNumber = keepNumber;
+			this.keepId = keepId;
 			this.removeNumber = removeNumber;
+			this.removeId = removeId;
 		}
 	}
 }

@@ -1,0 +1,30 @@
+Keeping C2
+Keeping D2
+Happy person: +C2,-D1
+Happy person: +C2,-D1
+Happy person: +D2,-C1
+Happy person: +D2,-C3
+
+Keeping C1
+Keeping D3
+Happy person: +C1,-D1
+Happy person: +C1,-D1
+Happy person: +C1,-D1
+Happy person: +C1,-D1
+Happy person: +D3,-C2
+Happy person: +D3,-C2
+Happy person: +D3,-C2
+Happy person: +D3,-C2
+
+Keeping C2
+Keeping C5
+Keeping D2
+Keeping D3
+Keeping D5
+Happy person: +C2,-D4
+Happy person: +D2,-C3
+Happy person: +D3,-C1
+Happy person: +C5,-D4
+Happy person: +D3,-C4
+Happy person: +C2,-D1
+Happy person: +D5,-C4
