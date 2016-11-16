@@ -138,26 +138,21 @@ public class CatVsDog {
 		List<Integer> path = getBFSPath(g);
 		while (!path.isEmpty()) {
 			List<Integer[]> edges = new ArrayList<Integer[]>();
-			int minRCapacity = Integer.MAX_VALUE;
 			for (int i = 1; i < path.size(); i++) {
-				int edgeRCapacity = g.getResidualCapacity(path.get(i-1), path.get(i));
-				if (edgeRCapacity < minRCapacity) {
-					minRCapacity = edgeRCapacity;
-				}
 				edges.add(new Integer[] {path.get(i-1), path.get(i)});
 			}
 			
 			for (Integer[] edge : edges) {
 				if (g.getCapacity(edge[0], edge[1]) != 0) {
 					int currFlow = g.getFlow(edge[0], edge[1]);
-					g.setFlow(edge[0], edge[1], currFlow + minRCapacity);
+					g.setFlow(edge[0], edge[1], currFlow + 1);
 				} else {
 					int currFlow = g.getFlow(edge[1], edge[0]);
-					g.setFlow(edge[1], edge[0], currFlow - minRCapacity);
+					g.setFlow(edge[1], edge[0], currFlow - 1);
 				}
 			}
 			path = getBFSPath(g);
-			f += minRCapacity;
+			f += 1;
 		}
 		return f;
 	}
@@ -195,16 +190,12 @@ public class CatVsDog {
 			// node is adjacent if it has residual capacity
 			List<Integer> l = new ArrayList<Integer>();
 			for (int i = 0; i < getSize(); i++) {
-				int rCap = getResidualCapacity(v, i);
+				int rCap = capacityMatrix[v][i] - flowMatrix[v][i] + flowMatrix[i][v];
 				if (rCap > 0) {
 					l.add(i);
 				}
 			}
 			return l;
-		}
-		
-		public Integer getResidualCapacity(int v1, int v2) {
-			return getCapacity(v1, v2) - getFlow(v1, v2) + getFlow(v2, v1);
 		}
 		
 		public int getSourceIndex() {
