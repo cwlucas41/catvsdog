@@ -2,8 +2,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Scanner;
+import java.util.Set;
 
 public class CatVsDog {
 	
@@ -165,8 +167,7 @@ public class CatVsDog {
 	class Graph {
 		// graph information
 		int numberOfVerticies;
-		int[][] flowMatrix;
-		int[][] capacityMatrix;
+		List<Map<Integer, Integer[]>> adjList;
 		
 		// convenient index information
 		int sourceIndex;
@@ -175,8 +176,8 @@ public class CatVsDog {
 
 		public Graph(List<VoterPreference> vps) {
 			numberOfVerticies = vps.size() + 2;
-			flowMatrix = new int[numberOfVerticies][numberOfVerticies];
-			capacityMatrix = new int[numberOfVerticies][numberOfVerticies];
+			
+			adjList = new ArrayList<Map<Integer, Integer[]>>();
 			
 			// build index map
 			int i;
@@ -185,6 +186,11 @@ public class CatVsDog {
 			}
 			sourceIndex = i++;
 			sinkIndex = i++;
+			
+			// initialize adjList
+			for (int j = 0; j < numberOfVerticies; j++) {
+				adjList.add(new HashMap<Integer, Integer[]>());
+			}
 		}
 		
 		public int getSize() {
@@ -220,6 +226,8 @@ public class CatVsDog {
 		}
 		
 		public void setCapacity(int v1, int v2, int value) {
+			adjList.get(v1).
+			
 			capacityMatrix[v1][v2] = value;
 		}
 		
