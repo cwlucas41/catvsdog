@@ -23,7 +23,6 @@ public class CatVsDogTest {
 	}
 	
 	void test(String prefix) {
-//		while(true) {
 		
 		String inFileName = prefix + ".in";
 		String ansFileName = prefix + ".ans";
@@ -82,5 +81,4 @@ public class CatVsDogTest {
 		
 		assertTrue(myAns.equals(ans));
 	}
-//	}
 }
