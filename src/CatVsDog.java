@@ -36,7 +36,7 @@ public class CatVsDog {
 			// analyze preferences
 			CatVsDog cvd = new CatVsDog();
 			List<VoterPreference> vps = cvd.convertPreferences(voterPreferences);
-			Graph g = cvd.new Graph(vps);
+			UnitCapacityFlowNetwork g = cvd.new UnitCapacityFlowNetwork(vps);
 			cvd.initializeGraphCapacity(g, vps);
 			int minNumberUnsatisfiedPreferences = cvd.ekMaxFlow(g);
 			int numSatisfiedPreferences = numberOfPreferences - minNumberUnsatisfiedPreferences;
@@ -58,7 +58,7 @@ public class CatVsDog {
 		return vps;
 	}
 	
-	void initializeGraphCapacity(Graph g, List<VoterPreference> vps) {
+	void initializeGraphCapacity(UnitCapacityFlowNetwork g, List<VoterPreference> vps) {
 		// sort preferences into cat and dog lovers
 		List<VoterPreference> dlps = new ArrayList<VoterPreference>();
 		List<VoterPreference> clps = new ArrayList<VoterPreference>();
@@ -90,7 +90,7 @@ public class CatVsDog {
 		}	
 	}
 	
-	List<Integer> getBFSPath(Graph g) {
+	List<Integer> getBFSPath(UnitCapacityFlowNetwork g) {
 		// book's pseudocode adapted to Java
 		int size = g.getSize();
 		char[] color = new char[size];
@@ -110,7 +110,7 @@ public class CatVsDog {
 		q.add(g.getSourceIndex());
 		while (q.peek() != null) {
 			int u = q.remove();
-			for (int v : g.getAdjacentNodes(u)) {
+			for (int v : g.getAdjacentVerticiesWithResidualCapacity(u)) {
 				if (color[v] == 'W') {
 					color[v] = 'G';
 					d[v] = d[u] + 1;
@@ -134,7 +134,7 @@ public class CatVsDog {
 		return path;
 	}
 	
-	Integer ekMaxFlow(Graph g) {
+	Integer ekMaxFlow(UnitCapacityFlowNetwork g) {
 		// book's pseudocode adapted to Java
 		int f = 0;
 		List<Integer> path = getBFSPath(g);
@@ -163,7 +163,7 @@ public class CatVsDog {
 		return f;
 	}
 	
-	class Graph {
+	class UnitCapacityFlowNetwork {
 		// graph information
 		int numberOfVerticies;
 		int[][] flowMatrix;
@@ -175,7 +175,7 @@ public class CatVsDog {
 		int sinkIndex;
 		HashMap<VoterPreference, Integer> indexMap = new HashMap<VoterPreference, Integer>();
 
-		public Graph(List<VoterPreference> vps) {
+		public UnitCapacityFlowNetwork(List<VoterPreference> vps) {
 			numberOfVerticies = vps.size() + 2;
 			
 			flowMatrix = new int[numberOfVerticies][numberOfVerticies];
@@ -183,8 +183,8 @@ public class CatVsDog {
 			adjList = new ArrayList<Set<Integer>>();
 			
 			// build index map
-			int i;
-			for (i = 0; i < vps.size(); i++) {
+			int i = 0;
+			for ( ; i < vps.size(); i++) {
 				indexMap.put(vps.get(i), i);
 			}
 			sourceIndex = i++;
@@ -200,15 +200,13 @@ public class CatVsDog {
 			return numberOfVerticies;
 		}
 		
-		public List<Integer> getAdjacentNodes(int v) {
-			List<Integer> adjacent = new ArrayList<Integer>();
-			for (Integer v2 : adjList.get(v)) {
-				int residualFlow = capacityMatrix[v][v2] - getFlow(v, v2) + getFlow(v2, v);
-				if (residualFlow > 0) {
-					adjacent.add(v2);
-				}
-			}
-			return adjacent;
+		public List<Integer> getAdjacentVerticiesWithResidualCapacity(int v1) {
+			List<Integer> adj = new ArrayList<Integer>(adjList.get(v1));
+			return adj;
+		}
+		
+		int getResidualCapacity(int v1, int v2) {
+			return capacityMatrix[v1][v2] - getFlow(v1, v2) + getFlow(v2, v1);
 		}
 		
 		public int getSourceIndex() {
@@ -226,15 +224,24 @@ public class CatVsDog {
 		public void addEdge(int v1, int v2) {
 			capacityMatrix[v1][v2] = 1;
 			adjList.get(v1).add(v2);
-			adjList.get(v2).add(v1);
 		}
 		
 		public boolean hasEdge(int v1, int v2) {
-			return adjList.get(v1).contains(v2);
+			return capacityMatrix[v1][v2] == 1;
 		}
 		
 		public void setFlow(int v1, int v2, int value) {
-			flowMatrix[v1][v2] = value;	
+			flowMatrix[v1][v2] = value;
+			if (getResidualCapacity(v1, v2) > 0) {
+				adjList.get(v1).add(v2);
+			} else {
+				adjList.get(v1).remove(v2);
+			}
+			if (getResidualCapacity(v2, v1) > 0) {
+				adjList.get(v2).add(v1);
+			} else {
+				adjList.get(v2).remove(v1);
+			}
 		}
 		
 		public int getFlow(int v1, int v2) {
