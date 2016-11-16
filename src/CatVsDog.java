@@ -167,6 +167,7 @@ public class CatVsDog {
 		// graph information
 		int numberOfVerticies;
 		int[][] flowMatrix;
+		int[][] capacityMatrix;
 		List<Set<Integer>> adjList;
 		
 		// convenient index information
@@ -178,6 +179,7 @@ public class CatVsDog {
 			numberOfVerticies = vps.size() + 2;
 			
 			flowMatrix = new int[numberOfVerticies][numberOfVerticies];
+			capacityMatrix = new int[numberOfVerticies][numberOfVerticies];
 			adjList = new ArrayList<Set<Integer>>();
 			
 			// build index map
@@ -201,7 +203,7 @@ public class CatVsDog {
 		public List<Integer> getAdjacentNodes(int v) {
 			List<Integer> adjacent = new ArrayList<Integer>();
 			for (Integer v2 : adjList.get(v)) {
-				int residualFlow = 1 - getFlow(v, v2) + getFlow(v2, v);
+				int residualFlow = capacityMatrix[v][v2] - getFlow(v, v2) + getFlow(v2, v);
 				if (residualFlow > 0) {
 					adjacent.add(v2);
 				}
@@ -222,7 +224,9 @@ public class CatVsDog {
 		}
 		
 		public void addEdge(int v1, int v2) {
+			capacityMatrix[v1][v2] = 1;
 			adjList.get(v1).add(v2);
+			adjList.get(v2).add(v1);
 		}
 		
 		public boolean hasEdge(int v1, int v2) {
