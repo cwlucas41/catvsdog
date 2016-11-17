@@ -8,3 +8,5 @@ Also, the FlowNetwork class includes a convenience feature that maps VoterPrefer
 Basically, the program parses the input and, for each test case, builds a list of the preferences for the voters. The voters are divided into two groups: dog lovers and cat lovers. A FlowNetwork is initialized as a bipartite graph with a soure connected to the cat lovers and the dog lovers connected to the sink. The cat lovers are connected to the dog lovers if their preferences conflict.
 
 On this graph, we run Edmunds-Karp max flow algorithm. The max flow represents the minimum number of dissatisfied voters. Thus the maximum number of satisfied voters is the number of voters minus the max flow. To produce the trace informatoin we run BFS (which is also used by Edmunds-Karp) one last time. From this BFS, the satisfied voters are the reachable cat lovers and the unreachable dog lovers. The animals that can be kept are the preferred animals of the satisfied voters.
+
+There are no known problems with the correctness of the code.
